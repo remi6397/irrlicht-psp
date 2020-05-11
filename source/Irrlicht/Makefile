@@ -62,7 +62,7 @@ LINKOBJ = $(IRRMESHOBJ) $(IRROBJ) $(IRRPARTICLEOBJ) $(IRRANIMOBJ) \
 ###############
 #Compiler flags
 CXXINCS = -I../../include -Izlib -Ijpeglib -Ilibpng
-CPPFLAGS += $(CXXINCS) -DIRRLICHT_EXPORTS=1
+CPPFLAGS += $(CXXINCS) #-DIRRLICHT_EXPORTS=1
 CXXFLAGS += -Wall -pipe -fno-exceptions -fno-rtti -fstrict-aliasing
 ifndef NDEBUG
 CXXFLAGS += -g -D_DEBUG
@@ -90,6 +90,26 @@ INSTALL_DIR = /usr/local/lib
 sharedlib install: SHARED_LIB = libIrrlicht.so
 sharedlib: LDFLAGS += -L/usr/X11R6/lib$(LIBSELECT) -lGL -lXxf86vm
 staticlib sharedlib: CXXINCS += -I/usr/X11R6/include
+
+
+
+#PSP specific options
+staticlib_psp install_psp: SYSTEM = PSP
+ifeq (,$(shell psp-config --pspdev-path))
+$(error psp-config is not in your $$PATH)
+endif
+PSPDEV = $(shell psp-config --pspdev-path)
+PSPSDK = $(shell psp-config --pspsdk-path)
+PSPBIN = $(PSPDEV)/psp/bin
+CC = $(PSPDEV)/bin/psp-gcc
+CXX = $(PSPDEV)/bin/psp-g++
+CPP = $(PSPDEV)/bin/psp-cpp
+AR = $(PSPDEV)/bin/psp-ar
+RANLIB = $(PSPDEV)/bin/psp-ranlib
+CPPFLAGS += -I$(PSPDEV)/psp/include -I$(PSPSDK)/include
+STATIC_LIB = libIrrlicht.a
+LIB_PATH = ../../lib/$(SYSTEM)
+INSTALL_DIR = $(PSPDEV)/psp/lib
 
 #OSX specific options
 staticlib_osx sharedlib_osx install_osx: SYSTEM = MacOSX
@@ -127,10 +147,16 @@ sharedlib: $(LINKOBJ)
 
 # Builds Irrlicht as static lib (libIrrlicht.a)
 $(STATIC_LIB): $(LINKOBJ)
-	$(AR) rs $@ $^
+	$(AR) ru $@ $^
+	$(RANLIB) $@
 
 # Copies static lib into lib/Linux
 staticlib staticlib_osx: $(STATIC_LIB)
+	mkdir -p $(LIB_PATH)
+	cp $^ $(LIB_PATH)
+
+all_psp psp: staticlib_psp
+staticlib_psp: $(STATIC_LIB)
 	mkdir -p $(LIB_PATH)
 	cp $^ $(LIB_PATH)
 
@@ -157,6 +183,14 @@ install install_osx:
 	cd $(INSTALL_DIR) && ln -s -f $(SHARED_FULLNAME) $(SONAME)
 	cd $(INSTALL_DIR) && ln -s -f $(SONAME) $(SHARED_LIB)
 #	ldconfig -n $(INSTALL_DIR)
+
+# PSP installation
+install_psp:
+	$(RM) -r $(INSTALL_DIR)/../include/irrlicht
+	$(RM) -r $(INSTALL_DIR)/$(STATIC_LIB)
+	mkdir -p $(INSTALL_DIR)/../include/irrlicht
+	cp ../../include/*.h $(INSTALL_DIR)/../include/irrlicht/
+	cp $(LIB_PATH)/$(STATIC_LIB) $(INSTALL_DIR)
 
 TAGS:
 	ctags *.cpp ../../include/*.h *.h

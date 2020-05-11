@@ -1,4 +1,28 @@
 ==========================================================================
+A naive PSP port of  The Irrlicht Engine SDK version 1.8.4
+==========================================================================
+
+-----------
+To compile:
+-----------
+
+# cd source/Irrlicht
+# make clean && make -j12 && make install
+
+
+--------
+To test:
+--------
+
+Currently only the 01.HelloWorld example has been adapted to PSP.
+As of now, it only works in PPSSPP emulator (or at least not on my PSP2000),
+although at an _extremely_ poor framerate (8 FPS on my PC)
+
+$ cd examples/01.HelloWorld
+$ make clean && make -j12 && ppsspp-sdl EBOOT.PBP
+
+
+==========================================================================
 The Irrlicht Engine SDK version 1.8.4
 ==========================================================================
 
@@ -186,9 +210,9 @@ The Irrlicht Engine SDK version 1.8.4
   Many others (this list hasn't been updated in a while, but they are often mentioned in changes.txt)
   Etienne Petitjean wrote the MacPort of the engine
   Mark Jeacocke	Wrote lots of helpful comments and ideas in the forums and per email.
-  Julio Gorgé	Created the 'Unofficial DirectX 9.0 Driver for the Irrlicht Engine'
+  Julio Gorgï¿½	Created the 'Unofficial DirectX 9.0 Driver for the Irrlicht Engine'
   Andy Spurgeon	Wrote the Dev-Cpp tutorial.
-  André Simon	Wrote the Codewarrior tutorial.
+  Andrï¿½ Simon	Wrote the Codewarrior tutorial.
   KnightToFlight	Created the unoffical terrain renderer addon for the Irrlicht Engine.
   Jon Pry	Wrote the code to load compressed TGA files.
   Matthew Couch	Wrote the tokamak integration tutorial.

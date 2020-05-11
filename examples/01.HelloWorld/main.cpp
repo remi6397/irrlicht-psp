@@ -1,4 +1,4 @@
-/** Example 001 HelloWorld
+/** Example 001 HelloWorld  --  PSP version
 
 This Tutorial shows how to set up the IDE for using the Irrlicht Engine and how
 to write a simple HelloWorld program with it. The program will show how to use
@@ -42,7 +42,10 @@ Lets start!
 After we have set up the IDE, the compiler will know where to find the Irrlicht
 Engine header files so we can include it now in our code.
 */
-#include <irrlicht.h>
+#include <irrlicht/irrlicht.h>
+
+#include <pspkernel.h>
+#include <pspthreadman.h>
 
 /*
 In the Irrlicht Engine, everything can be found in the namespace 'irr'. So if
@@ -53,6 +56,9 @@ compiler that we use that namespace from now on, and we will not have to write
 irr:: anymore.
 */
 using namespace irr;
+
+PSP_MODULE_INFO("IrrlichtHelloWorld", 0, 1, 1);
+PSP_MAIN_THREAD_ATTR(PSP_THREAD_ATTR_VFPU|PSP_THREAD_ATTR_USER);
 
 /*
 There are 5 sub namespaces in the Irrlicht Engine. Take a look at them, you can
@@ -69,25 +75,48 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
-/*
-To be able to use the Irrlicht.DLL file, we need to link with the Irrlicht.lib.
-We could set this option in the project settings, but to make it easy, we use a
-pragma comment lib for VisualStudio. On Windows platforms, we have to get rid
-of the console window, which pops up when starting a program with main(). This
-is done by the second pragma. We could also use the WinMain method, though
-losing platform independence then.
-*/
-#ifdef _IRR_WINDOWS_
-#pragma comment(lib, "Irrlicht.lib")
-#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
-#endif
+bool done;
 
+/* Exit callback */
+int exit_callback(int arg1, int arg2, void *common)
+{
+	done = 1;
+	return 0;
+}
+
+/* Callback thread */
+int CallbackThread(SceSize args, void *argp)
+{
+	int cbid;
+
+	cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
+	sceKernelRegisterExitCallback(cbid);
+	sceKernelSleepThreadCB();
+
+	return 0;
+}
+
+/* Sets up the callback thread and returns its thread id */
+int SetupCallbacks(void)
+{
+	int thid = 0;
+
+	thid = sceKernelCreateThread("update_thread", CallbackThread,
+				     0x11, 0xFA0, 0, 0);
+	if(thid >= 0)
+	{
+		sceKernelStartThread(thid, 0, 0);
+	}
+
+	return thid;
+}
 
 /*
 This is the main method. We can now use main() on every platform.
 */
 int main()
 {
+	SetupCallbacks();
 	/*
 	The most important function of the engine is the createDevice()
 	function. The IrrlichtDevice is created by it, which is the root
@@ -122,11 +151,14 @@ int main()
 	dimensions, etc.
 	*/
 	IrrlichtDevice *device =
-		createDevice( video::EDT_SOFTWARE, dimension2d<u32>(640, 480), 16,
-			false, false, false, 0);
+		createDevice( video::EDT_OPENGL, dimension2d<u32>(480, 272), 32,
+			true, false, false, 0);
 
 	if (!device)
-		return 1;
+	{
+		sceKernelExitGame();
+		return 0;
+	}
 
 	/*
 	Set the caption of the window to some nice text. Note that there is an
@@ -150,7 +182,7 @@ int main()
 	The text is placed at the position (10,10) as top left corner and
 	(260,22) as lower right corner.
 	*/
-	guienv->addStaticText(L"Hello World! This is the Irrlicht Software renderer!",
+	guienv->addStaticText(L"Hello World! This is the Irrlicht PSP renderer!",
 		rect<s32>(10,10,260,22), true);
 
 	/*
@@ -165,7 +197,7 @@ int main()
 	other supported file format. By the way, that cool Quake 2 model
 	called sydney was modelled by Brian Collins.
 	*/
-	IAnimatedMesh* mesh = smgr->getMesh("../../media/sydney.md2");
+	IAnimatedMesh* mesh = smgr->getMesh("umd0:/sydney.md2");
 	if (!mesh)
 	{
 		device->drop();
@@ -185,7 +217,7 @@ int main()
 	{
 		node->setMaterialFlag(EMF_LIGHTING, false);
 		node->setMD2Animation(scene::EMAT_STAND);
-		node->setMaterialTexture( 0, driver->getTexture("../../media/sydney.bmp") );
+		node->setMaterialTexture( 0, driver->getTexture("umd0:/sydney.bmp") );
 	}
 
 	/*
@@ -228,6 +260,7 @@ int main()
 	*/
 	device->drop();
 
+	sceKernelExitGame();
 	return 0;
 }
 

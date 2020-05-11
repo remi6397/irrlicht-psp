@@ -59,7 +59,7 @@ COpenGLTexture::COpenGLTexture(IImage* origImage, const io::path& name, void* mi
 //! constructor for basic setup (only for derived classes)
 COpenGLTexture::COpenGLTexture(const io::path& name, COpenGLDriver* driver)
 	: ITexture(name), ColorFormat(ECF_A8R8G8B8), Driver(driver), Image(0), MipImage(0),
-	TextureName(0), InternalFormat(GL_RGBA), PixelFormat(GL_BGRA_EXT),
+	TextureName(0), InternalFormat(GL_RGBA), PixelFormat(GL_RGBA),
 	PixelType(GL_UNSIGNED_BYTE), MipLevelStored(0), HasMipMaps(true),
 	MipmapLegacyMode(true), IsRenderTarget(false), AutomaticMipmapUpdate(false),
 	ReadOnlyLock(false), KeepImage(true)
@@ -300,6 +300,8 @@ void COpenGLTexture::getImageValues(IImage* image)
 //! copies the the texture into an open gl texture.
 void COpenGLTexture::uploadTexture(bool newTexture, void* mipmapData, u32 level)
 {
+	Driver->testGLError();
+
 	// check which image needs to be uploaded
 	IImage* image = level?MipImage:Image;
 	if (!image)
@@ -324,7 +326,7 @@ void COpenGLTexture::uploadTexture(bool newTexture, void* mipmapData, u32 level)
 	if (!level && newTexture)
 	{
 #ifndef DISABLE_MIPMAPPING
-#ifdef GL_SGIS_generate_mipmap
+#if 0//def GL_SGIS_generate_mipmap
 		// auto generate if possible and no mipmap data is given
 		if (HasMipMaps && !mipmapData && Driver->queryFeature(EVDF_MIP_MAP_AUTO_UPDATE))
 		{
@@ -372,23 +374,59 @@ void COpenGLTexture::uploadTexture(bool newTexture, void* mipmapData, u32 level)
 	}
 
 	// now get image data and upload to GPU
-	void* source = image->lock();
-	if (newTexture)
-		glTexImage2D(GL_TEXTURE_2D, level, InternalFormat, image->getDimension().Width,
-			image->getDimension().Height, 0, PixelFormat, PixelType, source);
-	else
-		glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, image->getDimension().Width,
-			image->getDimension().Height, PixelFormat, PixelType, source);
+	u32* source = static_cast<u32*>(image->lock());
+	auto pixelFormat = PixelFormat;
+	auto internalFormat = InternalFormat;
+	switch (PixelFormat)
+	{
+	// Naive color conversion
+	case GL_BGRA_EXT:
+	{
+		u32 s = image->getDimension().Width * image->getDimension().Height;
+		for (u32 i = 0; i < s; ++i)
+		{
+			u32 src = source[i];
+			u32 r = (src      ) & 0xff;
+			u32 g = (src >> 8 ) & 0xff;
+			u32 b = (src >> 16) & 0xff;
+			u32 a = (src >> 24) & 0xff;
+
+			u32 dst = (a << 24) | (r << 16) | (g << 8) | b;
+
+			source[i] = dst;
+		}
+		internalFormat = pixelFormat = GL_RGBA;
+		break;
+	}
+	case GL_RGBA:
+	{
+		internalFormat = pixelFormat = GL_RGBA;
+		break;
+	}
+	default:
+	{
+		os::Printer::log("Unknown format in uploadTexture", ELL_ERROR);
+		break;
+	}
+	}
+	Driver->testGLError();
+	if (!newTexture)
+		os::Printer::log("NOT a new texture");
+	glTexImage2D(GL_TEXTURE_2D, level, internalFormat, image->getDimension().Width,
+		image->getDimension().Height, 0, pixelFormat, GL_UNSIGNED_BYTE, source);
 	image->unlock();
+
+	if (Driver->testGLError())
+		os::Printer::log("Could not glTexImage2D", ELL_ERROR);
 
 	if (!MipmapLegacyMode && AutomaticMipmapUpdate)
 	{
 		glEnable(GL_TEXTURE_2D);
 		Driver->extGlGenerateMipmap(GL_TEXTURE_2D);
-	}
 
-	if (Driver->testGLError())
-		os::Printer::log("Could not glTexImage2D", ELL_ERROR);
+		if (Driver->testGLError())
+			os::Printer::log("Could not extGlGenerateMipmap", ELL_ERROR);
+	}
 }
 
 
@@ -461,8 +499,12 @@ void* COpenGLTexture::lock(E_TEXTURE_LOCK_MODE mode, u32 mipmapLevel)
 				glPixelStorei(GL_PACK_INVERT_MESA, GL_TRUE);
 #endif
 
+#if 0
 			// download GPU data as ARGB8 to pixels;
 			glGetTexImage(GL_TEXTURE_2D, mipmapLevel, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixels);
+#else
+			#warning Something is not right here
+#endif
 
 			if (!mipmapLevel)
 			{
@@ -652,8 +694,10 @@ void COpenGLTexture::unbindRTT()
 {
 	Driver->setActiveTexture(0, this);
 
+#if 0
 	// Copy Our ViewPort To The Texture
 	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, getSize().Width, getSize().Height);
+#endif
 }
 
 
@@ -960,4 +1004,5 @@ bool checkFBOStatus(COpenGLDriver* Driver)
 } // end namespace irr
 
 #endif // _IRR_COMPILE_WITH_OPENGL_
+
 

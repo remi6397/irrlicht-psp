@@ -9,6 +9,33 @@
 
 #include "SIrrCreationParameters.h"
 
+#ifdef _IRR_PSP_PLATFORM_
+
+//#define glHint(p, q) nullptr
+//#define glPointSize(p) nullptr
+
+//#define glRectf(x1, y1, x2, y2) glBegin( GL_TRIANGLE_STRIP ); \
+//	glVertex2f (x1, y1); \
+//	glVertex2f (x2, y1); \
+//	glVertex2f (x2, y2); \
+//	glVertex2f (x1, y2); \
+//	glEnd();
+
+//inline void* glHint_psp(int p, int q)
+//{
+//	return nullptr;
+//}
+//
+//inline void* glPointSize_psp(void* p)
+//{
+//	return nullptr;
+//}
+//glHint_psp(p, q)
+
+//glPointSize_psp(p)
+
+#endif
+
 namespace irr
 {
 	class CIrrDeviceWin32;
@@ -457,6 +484,8 @@ namespace video
 		//! helper function doing the actual rendering.
 		void renderArray(const void* indexList, u32 primitiveCount,
 				scene::E_PRIMITIVE_TYPE pType, E_INDEX_TYPE iType);
+
+		s32 LastSetLight;
 
 		core::stringw Name;
 		core::matrix4 Matrices[ETS_COUNT];

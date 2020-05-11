@@ -35,6 +35,7 @@
 		#include <OpenGL/gl.h>
 	#else
 		#include <GL/gl.h>
+		#include <GL/glu.h>
 	#endif
 #endif
 
@@ -202,4 +203,3 @@ protected:
 
 #endif
 #endif // _IRR_COMPILE_WITH_OPENGL_
-

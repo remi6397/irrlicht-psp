@@ -737,9 +737,13 @@ bool COpenGLDriver::genericDriverInit()
 //		glEnable(GL_RESCALE_NORMAL_EXT);
 
 	glClearDepth(1.0);
+
+#ifndef _IRR_PSP_PLATFORM_
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+#endif
+
 	glDepthFunc(GL_LEQUAL);
 	glFrontFace(GL_CW);
 	// adjust flat coloring scheme to DirectX version
@@ -1709,7 +1713,9 @@ void COpenGLDriver::renderArray(const void* indexList, u32 primitiveCount,
 			extGlPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_SGIS, 1.0f);
 #endif
 #endif
+#ifndef _IRR_PSP_PLATFORM_
 			glPointSize(particleSize);
+#endif
 
 #ifdef GL_ARB_point_sprite
 			if (pType==scene::EPT_POINT_SPRITES && FeatureAvailable[IRR_ARB_point_sprite])
@@ -2333,8 +2339,17 @@ void COpenGLDriver::draw2DRectangle(SColor color, const core::rect<s32>& positio
 		return;
 
 	glColor4ub(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+	#ifdef _IRR_PSP_PLATFORM_
+	glBegin( GL_TRIANGLE_STRIP );
+		glVertex2f (GLfloat(pos.UpperLeftCorner.X),  GLfloat(pos.UpperLeftCorner.Y));
+		glVertex2f (GLfloat(pos.LowerRightCorner.X), GLfloat(pos.UpperLeftCorner.Y));
+		glVertex2f (GLfloat(pos.LowerRightCorner.X), GLfloat(pos.LowerRightCorner.Y));
+		glVertex2f (GLfloat(pos.UpperLeftCorner.X),  GLfloat(pos.LowerRightCorner.Y));
+	glEnd();
+	#else
 	glRectf(GLfloat(pos.UpperLeftCorner.X), GLfloat(pos.UpperLeftCorner.Y),
 		GLfloat(pos.LowerRightCorner.X), GLfloat(pos.LowerRightCorner.Y));
+	#endif
 }
 
 
@@ -2581,9 +2596,11 @@ void COpenGLDriver::setRenderStates3DMode()
 		glLoadMatrixf(Matrices[ETS_PROJECTION].pointer());
 
 		ResetRenderStates = true;
+#ifndef _IRR_PSP_PLATFORM_
 #ifdef GL_EXT_clip_volume_hint
 		if (FeatureAvailable[IRR_EXT_clip_volume_hint])
 			glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_NICEST);
+#endif
 #endif
 	}
 
@@ -2736,6 +2753,7 @@ void COpenGLDriver::setWrapMode(const SMaterial& material)
 void COpenGLDriver::setBasicRenderStates(const SMaterial& material, const SMaterial& lastmaterial,
 	bool resetAllRenderStates)
 {
+	#ifndef _IRR_PSP_PLATFORM_
 	if (resetAllRenderStates ||
 		lastmaterial.ColorMaterial != material.ColorMaterial)
 	{
@@ -2763,6 +2781,7 @@ void COpenGLDriver::setBasicRenderStates(const SMaterial& material, const SMater
 		if (material.ColorMaterial != ECM_NONE)
 			glEnable(GL_COLOR_MATERIAL);
 	}
+	#endif
 
 	if (resetAllRenderStates ||
 		lastmaterial.AmbientColor != material.AmbientColor ||
@@ -3132,12 +3151,16 @@ void COpenGLDriver::setBasicRenderStates(const SMaterial& material, const SMater
 		{
 //			glPointSize(core::clamp(static_cast<GLfloat>(material.Thickness), DimSmoothedPoint[0], DimSmoothedPoint[1]));
 			// we don't use point smoothing
+#ifndef _IRR_PSP_PLATFORM_
 			glPointSize(core::clamp(static_cast<GLfloat>(material.Thickness), DimAliasedPoint[0], DimAliasedPoint[1]));
+#endif
 			glLineWidth(core::clamp(static_cast<GLfloat>(material.Thickness), DimSmoothedLine[0], DimSmoothedLine[1]));
 		}
 		else
 		{
+#ifndef _IRR_PSP_PLATFORM_
 			glPointSize(core::clamp(static_cast<GLfloat>(material.Thickness), DimAliasedPoint[0], DimAliasedPoint[1]));
+#endif
 			glLineWidth(core::clamp(static_cast<GLfloat>(material.Thickness), DimAliasedLine[0], DimAliasedLine[1]));
 		}
 	}
@@ -3155,6 +3178,7 @@ void COpenGLDriver::setBasicRenderStates(const SMaterial& material, const SMater
 			if ((AntiAlias >= 2) && (material.AntiAliasing & (EAAM_SIMPLE|EAAM_QUALITY)))
 			{
 				glEnable(GL_MULTISAMPLE_ARB);
+#ifndef _IRR_PSP_PLATFORM_
 #ifdef GL_NV_multisample_filter_hint
 				if (FeatureAvailable[IRR_NV_multisample_filter_hint])
 				{
@@ -3163,6 +3187,7 @@ void COpenGLDriver::setBasicRenderStates(const SMaterial& material, const SMater
 					else
 						glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 				}
+#endif
 #endif
 			}
 			else
@@ -3239,9 +3264,11 @@ void COpenGLDriver::setRenderStates2DMode(bool alpha, bool texture, bool alphaCh
 			LastMaterial = InitMaterial2D;
 		}
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#ifndef _IRR_PSP_PLATFORM_
 #ifdef GL_EXT_clip_volume_hint
 		if (FeatureAvailable[IRR_EXT_clip_volume_hint])
 			glHint(GL_CLIP_VOLUME_CLIPPING_HINT_EXT, GL_FASTEST);
+#endif
 #endif
 
 	}
@@ -3397,6 +3424,7 @@ void COpenGLDriver::assignHardwareLight(u32 lightIndex)
 	setTransform(ETS_WORLD, core::matrix4());
 
 	s32 lidx;
+	#ifndef _IRR_PSP_PLATFORM_
 	for (lidx=GL_LIGHT0; lidx < GL_LIGHT0 + MaxLights; ++lidx)
 	{
 		if(!glIsEnabled(lidx))
@@ -3405,6 +3433,7 @@ void COpenGLDriver::assignHardwareLight(u32 lightIndex)
 			break;
 		}
 	}
+	#endif
 
 	if(lidx == GL_LIGHT0 + MaxLights) // There's no room for it just now
 		return;
@@ -3796,10 +3825,12 @@ void COpenGLDriver::setFog(SColor c, E_FOG_TYPE fogType, f32 start,
 	else
 		glFogf(GL_FOG_DENSITY, density);
 
+#ifndef _IRR_PSP_PLATFORM_
 	if (pixelFog)
 		glHint(GL_FOG_HINT, GL_NICEST);
 	else
 		glHint(GL_FOG_HINT, GL_FASTEST);
+#endif
 
 	SColorf color(c);
 	GLfloat data[4] = {color.r, color.g, color.b, color.a};
@@ -4002,7 +4033,7 @@ ITexture* COpenGLDriver::addRenderTargetTexture(const core::dimension2d<u32>& si
 	setTextureCreationFlag(ETCF_CREATE_MIP_MAPS, false);
 
 	video::ITexture* rtt = 0;
-#if defined(GL_EXT_framebuffer_object)
+#if !defined(_IRR_PSP_PLATFORM_) && defined(GL_EXT_framebuffer_object)
 	// if driver supports FrameBufferObjects, use them
 	if (queryFeature(EVDF_FRAMEBUFFER_OBJECT))
 	{
@@ -4609,12 +4640,16 @@ void COpenGLDriver::removeDepthTexture(ITexture* texture)
 //! Set/unset a clipping plane.
 bool COpenGLDriver::setClipPlane(u32 index, const core::plane3df& plane, bool enable)
 {
+#ifdef _IRR_PSP_PLATFORM_
+	return false;
+#else
 	if (index >= MaxUserClipPlanes)
 		return false;
 
 	UserClipPlanes[index].Plane=plane;
 	enableClipPlane(index, enable);
 	return true;
+#endif
 }
 
 
@@ -4626,13 +4661,17 @@ void COpenGLDriver::uploadClipPlane(u32 index)
 	clip_plane[1] = UserClipPlanes[index].Plane.Normal.Y;
 	clip_plane[2] = UserClipPlanes[index].Plane.Normal.Z;
 	clip_plane[3] = UserClipPlanes[index].Plane.D;
+
+#ifndef _IRR_PSP_PLATFORM_
 	glClipPlane(GL_CLIP_PLANE0 + index, clip_plane);
+#endif
 }
 
 
 //! Enable/disable a clipping plane.
 void COpenGLDriver::enableClipPlane(u32 index, bool enable)
 {
+#ifndef _IRR_PSP_PLATFORM_
 	if (index >= MaxUserClipPlanes)
 		return;
 	if (enable)
@@ -4647,6 +4686,7 @@ void COpenGLDriver::enableClipPlane(u32 index, bool enable)
 		glDisable(GL_CLIP_PLANE0 + index);
 
 	UserClipPlanes[index].Enabled=enable;
+#endif
 }
 
 
